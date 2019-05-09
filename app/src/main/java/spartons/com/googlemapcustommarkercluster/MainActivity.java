@@ -4,19 +4,24 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.WindowManager;
 
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
-import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.maps.android.clustering.Cluster;
 import com.google.maps.android.clustering.ClusterManager;
 
 import java.util.Arrays;
 import java.util.List;
 
+import spartons.com.googlemapcustommarkercluster.clusterRenderer.MarkerClusterRenderer;
 import spartons.com.googlemapcustommarkercluster.data.User;
 import spartons.com.googlemapcustommarkercluster.util.GoogleMapHelper;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ClusterManager.OnClusterClickListener<User> {
+
+    private GoogleMap googleMap;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,17 +33,16 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         SupportMapFragment supportMapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.mapFragment);
         assert supportMapFragment != null;
-        supportMapFragment.getMapAsync(new OnMapReadyCallback() {
-            @Override
-            public void onMapReady(GoogleMap googleMap) {
-                GoogleMapHelper.defaultMapSettings(googleMap);
-                setUpClusterManager(googleMap);
-            }
+        supportMapFragment.getMapAsync(googleMap -> {
+            this.googleMap = googleMap;
+            GoogleMapHelper.defaultMapSettings(googleMap);
+            setUpClusterManager(googleMap);
         });
     }
 
     private void setUpClusterManager(GoogleMap googleMap) {
         ClusterManager<User> clusterManager = new ClusterManager<>(this, googleMap);
+        clusterManager.setRenderer(new MarkerClusterRenderer(this, googleMap, clusterManager));
         googleMap.setOnCameraIdleListener(clusterManager);
         List<User> items = getItems();
         clusterManager.addItems(items);
@@ -71,5 +75,20 @@ public class MainActivity extends AppCompatActivity {
                 new User("CodingInfinite22", new LatLng(-42.735258, 147.438000)),
                 new User("CodingInfinite23", new LatLng(-43.999792, 170.463352))
         );
+    }
+
+    @Override
+    public boolean onClusterClick(Cluster<User> cluster) {
+        if (cluster == null) return false;
+        LatLngBounds.Builder builder = new LatLngBounds.Builder();
+        for (User user : cluster.getItems())
+            builder.include(user.getPosition());
+        LatLngBounds bounds = builder.build();
+        try {
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return true;
     }
 }
