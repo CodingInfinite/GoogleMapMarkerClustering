@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">GoogleMapCustomMarkerCluster</string>
+    <string name="name">Name :</string>
+    <string name="address">Address :</string>
 </resources>
